@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "internal-llm-gateway"
+version = "0.1.0"
+description = "LLM Gateway nội bộ tương thích OpenAI Chat Completions"
+requires-python = ">=3.10"
+dependencies = [
+    "alembic>=1.13,<2",
+    "asyncpg>=0.29,<1",
+    "fastapi>=0.109,<1",
+    "httpx>=0.26,<1",
+    "pydantic>=2.5,<3",
+    "PyYAML>=6,<7",
+    "redis>=5,<7",
+    "sqlalchemy[asyncio]>=2.0,<3",
+    "uvicorn[standard]>=0.27,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "aiosqlite>=0.20,<1",
+    "pytest>=8,<10",
+    "pytest-asyncio>=0.23,<2",
+    "pytest-cov>=5,<8",
+    "ruff>=0.12,<1",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["app"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+ignore = ["B008"] # Depends(...) là convention được FastAPI yêu cầu.

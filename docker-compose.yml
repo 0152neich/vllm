@@ -1,0 +1,109 @@
+services:
+  vllm:
+    image: ${VLLM_IMAGE}
+    ports:
+      - "${VLLM_PORT}:8025"
+    command:
+      - --model
+      - ${VLLM_MODEL_NAME}
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8025"
+      - --max-model-len
+      - ${VLLM_MAX_MODEL_LEN}
+      - --gpu-memory-utilization
+      - ${VLLM_GPU_MEMORY_UTILIZATION}
+      - --max-num-seqs
+      - ${VLLM_MAX_NUM_SEQS}
+    environment:
+      HF_TOKEN: ${HF_TOKEN:-}
+    volumes:
+      - huggingface-cache:/root/.cache/huggingface
+      - vllm-cache:/root/.cache/vllm
+    ipc: host
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test:
+        - CMD
+        - python3
+        - -c
+        - >-
+          import urllib.request;
+          urllib.request.urlopen("http://127.0.0.1:8025/health", timeout=3)
+      interval: 30s
+      timeout: 5s
+      retries: 10
+      start_period: 10m
+    restart: unless-stopped
+
+  gateway-api:
+    build:
+      context: .
+      args:
+        PYTHON_IMAGE: ${PYTHON_IMAGE}
+    ports:
+      - "${GATEWAY_PORT}:${GATEWAY_CONTAINER_PORT}"
+    command:
+      - uvicorn
+      - app.main:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - ${GATEWAY_CONTAINER_PORT}
+    environment:
+      LLM_GATEWAY_DATABASE_URL: ${LLM_GATEWAY_DATABASE_URL}
+      LLM_GATEWAY_REDIS_URL: ${LLM_GATEWAY_REDIS_URL}
+      LLM_GATEWAY_UPSTREAM_BASE_URL: ${LLM_GATEWAY_UPSTREAM_BASE_URL}
+      LLM_GATEWAY_UPSTREAM_API_KEY: ${LLM_GATEWAY_UPSTREAM_API_KEY}
+      LLM_GATEWAY_KEY_PEPPER: ${LLM_GATEWAY_KEY_PEPPER}
+      LLM_GATEWAY_PLATFORM_ADMIN_KEY: ${LLM_GATEWAY_PLATFORM_ADMIN_KEY}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      vllm:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: ${POSTGRES_IMAGE}
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: ${REDIS_IMAGE}
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  huggingface-cache:
+  vllm-cache:
+  postgres-data:
+  redis-data:

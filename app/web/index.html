@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="vi" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>LLM Gateway Admin</title>
+  <link rel="stylesheet" href="/admin/styles.css">
+</head>
+<body>
+  <div id="login-screen" class="login-screen">
+    <main class="login-panel">
+      <div class="brand-mark" aria-hidden="true">G</div>
+      <p class="eyebrow">INTERNAL PLATFORM</p>
+      <h1>Đăng nhập LLM Gateway</h1>
+      <p class="muted">Sử dụng Platform Admin key hoặc Management key của project.</p>
+      <form id="login-form" class="stack">
+        <label>Management key<input id="management-key" type="password" required autocomplete="off" spellcheck="false" placeholder="lgw_… hoặc platform key"></label>
+        <button id="connect-button" type="submit">Tiếp tục</button>
+      </form>
+      <p class="security-note">Key chỉ được giữ trong phiên của tab này.</p>
+    </main>
+  </div>
+
+  <div id="app-shell" class="app-shell" hidden>
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark small">G</span><strong>LLM Gateway</strong></div>
+      <nav aria-label="Điều hướng chính">
+        <button class="nav-item" data-route="overview" type="button"><span>⌂</span>Overview</button>
+        <button class="nav-item" data-route="projects" type="button"><span>▦</span>Projects</button>
+        <button class="nav-item" data-route="keys" type="button"><span>⌁</span>API Keys</button>
+        <button class="nav-item" data-route="usage" type="button"><span>⌁</span>Usage</button>
+        <button class="nav-item" data-route="playground" type="button"><span>▷</span>Playground</button>
+        <button class="nav-item" data-route="settings" type="button"><span>⚙</span>Settings</button>
+      </nav>
+      <div class="sidebar-footer"><div class="connection-row"><span id="connection-dot" class="status-dot"></span><span id="connection">Đã kết nối</span></div><button id="logout-button" class="ghost full" type="button">Đăng xuất</button></div>
+    </aside>
+
+    <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
+    <main class="workspace">
+      <header class="topbar">
+        <button id="menu-button" class="icon-button menu-button" type="button" aria-label="Mở menu">☰</button>
+        <div class="page-heading"><h1 id="page-title">Overview</h1><p id="page-description">Theo dõi hoạt động của Gateway.</p></div>
+        <div class="topbar-actions"><select id="global-project" aria-label="Project đang chọn"><option value="">Tất cả project</option></select><button id="theme-button" class="icon-button" type="button" aria-label="Đổi giao diện">◐</button></div>
+      </header>
+
+      <div class="page-container">
+        <section id="page-overview" class="page" data-page="overview">
+          <div class="section-header"><div><h2>System overview</h2><p class="muted">Số liệu vận hành trong khoảng thời gian đã chọn.</p></div><select id="overview-hours"><option value="24">24 giờ</option><option value="168">7 ngày</option><option value="720">30 ngày</option></select></div>
+          <div class="metric-grid">
+            <article class="metric"><span>Requests</span><strong id="metric-requests">—</strong><small id="metric-success">— thành công</small></article>
+            <article class="metric"><span>Total tokens</span><strong id="metric-tokens">—</strong><small>Input + output</small></article>
+            <article class="metric"><span>Avg latency</span><strong id="metric-latency">—</strong><small>Milliseconds</small></article>
+            <article class="metric"><span>Active keys</span><strong id="metric-keys">—</strong><small id="metric-projects">— projects</small></article>
+          </div>
+          <div class="content-grid overview-grid"><article class="panel chart-panel"><div class="panel-header"><h3>Request volume</h3><span class="legend"><i></i>Requests</span></div><div id="overview-chart" class="chart empty-state">Chưa có usage trong khoảng này.</div></article><article class="panel"><div class="panel-header"><h3>Project status</h3><button class="link-button" data-go="projects" type="button">View all</button></div><div id="project-status" class="status-list"></div></article></div>
+          <article class="panel"><div class="panel-header"><h3>Recent requests</h3><button id="refresh-overview" class="secondary compact" type="button">Làm mới</button></div><div id="overview-recent" class="table-wrap"></div></article>
+        </section>
+
+        <section id="page-projects" class="page" data-page="projects" hidden>
+          <div class="section-header"><div><h2>Projects</h2><p class="muted">Nhóm quản lý API key và trạng thái ứng dụng.</p></div><button id="new-project-button" type="button">Create project</button></div>
+          <article class="panel"><div class="toolbar"><input id="project-search" type="search" placeholder="Tìm project…"><select id="project-status-filter"><option value="">Mọi trạng thái</option><option value="active">Active</option><option value="suspended">Suspended</option><option value="archived">Archived</option></select><button id="refresh-projects" class="secondary" type="button">Làm mới</button></div><div id="projects" class="table-wrap"></div></article>
+          <article id="project-detail" class="panel detail-panel" hidden><div class="panel-header"><div><h3 id="project-detail-name">Project details</h3><p id="project-detail-id" class="mono muted"></p></div><span id="project-detail-status" class="badge"></span></div><form id="project-policy-form" class="form-grid"><input name="project_id" type="hidden"><input name="version" type="hidden"><label class="wide">Tên project<input name="name" required></label><label>Trạng thái<select name="status"><option value="active">Active</option><option value="suspended">Suspended</option><option value="archived">Archived</option></select></label><p class="wide muted">Quyền model, quota và timeout được cấu hình trên từng API key.</p><div class="form-actions wide"><button id="delete-project-button" class="danger" type="button">Xóa project</button><button type="submit">Lưu thay đổi</button></div></form></article>
+        </section>
+
+        <section id="page-keys" class="page" data-page="keys" hidden>
+          <div class="section-header"><div><h2>API Keys</h2><p class="muted">Quản lý credential runtime và management.</p></div><button id="new-key-button" type="button">Create API key</button></div>
+          <article id="keys-list-panel" class="panel"><div class="toolbar"><select id="key-project-filter"><option value="">Tất cả project</option></select><select id="key-kind-filter"><option value="">Mọi loại</option><option value="runtime">Runtime</option><option value="management">Management</option></select><select id="key-status-filter"><option value="">Mọi trạng thái</option><option value="active">Active</option><option value="expired">Expired</option><option value="revoked">Revoked</option></select><button id="refresh-keys" class="secondary" type="button">Làm mới</button></div><div id="keys-table" class="table-wrap"></div></article>
+          <article id="key-detail" class="panel detail-panel" hidden><div class="panel-header"><div><button id="back-to-keys" class="link-button" type="button">← Back to keys</button><h3 id="key-detail-name">API key</h3><p id="key-detail-prefix" class="mono muted"></p></div><div class="inline-actions"><span id="key-detail-status" class="badge"></span><button id="detail-revoke-key" class="danger compact" type="button">Revoke key</button></div></div><div id="key-detail-facts" class="key-facts"></div><div class="key-detail-tabs"><button class="key-tab active" data-key-tab="overview" type="button">Overview</button><button class="key-tab" data-key-tab="settings" type="button">Settings</button></div><div id="key-overview" class="key-tab-panel"><div class="key-summary-grid"><article class="inset-card"><span>Rate limits</span><strong id="key-detail-limits">—</strong><small id="key-detail-limit-source"></small></article><article class="inset-card"><span>Models</span><strong id="key-detail-models">—</strong><small>Theo API key</small></article><article class="inset-card"><span>Request policy</span><strong id="key-detail-request-policy">—</strong><small>Theo API key</small></article><article class="inset-card"><span>Tags</span><div id="key-detail-tags" class="tag-list"></div></article></div></div><div id="key-settings" class="key-tab-panel" hidden><form id="key-settings-form" class="form-grid"><label class="wide">Allowed models<input name="allowed_models" placeholder="qwen3-8b, model-khác"></label><label>TPM (tokens / phút)<input name="tpm" type="number" min="1"></label><label>RPM (requests / phút)<input name="rpm" type="number" min="1"></label><label>Concurrency<input name="max_concurrency" type="number" min="1"></label><label>Max input characters<input name="max_input_characters" type="number" min="1"></label><label>Max output tokens<input name="max_output_tokens" type="number" min="1"></label><label>Timeout seconds<input name="timeout_seconds" type="number" min="1" step="any"></label><label class="wide">Metadata JSON<textarea name="metadata" rows="7" spellcheck="false">{}</textarea></label><div class="wide"><label>Tags<input id="key-settings-tag-input" type="text" placeholder="Nhập tag rồi Enter"></label><div id="key-settings-tags" class="tag-editor"></div></div><div class="form-actions wide"><button id="save-key-settings" type="submit">Save settings</button></div></form><p id="key-settings-readonly" class="muted" hidden>Chỉ Platform Admin được thay đổi settings của key này.</p></div></article>
+        </section>
+
+        <section id="page-usage" class="page" data-page="usage" hidden>
+          <div class="section-header"><div><h2>Usage</h2><p class="muted">Theo dõi request, token, lỗi và độ trễ.</p></div><select id="usage-hours"><option value="24">24 giờ</option><option value="168">7 ngày</option><option value="720">30 ngày</option></select></div>
+          <div class="metric-grid"><article class="metric"><span>Requests</span><strong id="usage-requests">—</strong></article><article class="metric"><span>Total tokens</span><strong id="usage-tokens">—</strong></article><article class="metric"><span>Error rate</span><strong id="usage-errors">—</strong></article><article class="metric"><span>Avg latency</span><strong id="usage-latency">—</strong></article></div>
+          <article class="panel chart-panel"><div class="panel-header"><h3>Requests over time</h3></div><div id="usage-chart" class="chart empty-state">Chưa có usage trong khoảng này.</div></article>
+          <article class="panel"><div class="panel-header"><h3>Request log</h3><button id="refresh-usage" class="secondary compact" type="button">Làm mới</button></div><div id="usage-output" class="table-wrap"></div></article>
+        </section>
+
+        <section id="page-playground" class="page" data-page="playground" hidden>
+          <div class="section-header"><div><h2>Playground</h2><p class="muted">Kiểm thử OpenAI-compatible Chat Completions.</p></div></div>
+          <div class="playground-layout"><form id="playground-form" class="panel stack"><label>Runtime API key<input name="runtime_key" type="password" required autocomplete="off" spellcheck="false"></label><label>Model<select name="model" id="playground-model" required></select></label><label>System prompt<textarea name="system_prompt" rows="6">Bạn là trợ lý hữu ích. Trả lời bằng tiếng Việt.</textarea></label><label>User request<textarea name="user_prompt" rows="7" required>Xin chào</textarea></label><details><summary>Advanced parameters</summary><div class="form-grid inset"><label>Temperature<input name="temperature" type="number" min="0" max="2" step="0.1" value="0.2"></label><label>Max tokens<input name="max_tokens" type="number" min="1" value="512"></label></div></details><button type="submit">Run request</button></form><article class="panel response-panel"><div class="panel-header"><h3>Response</h3><button id="raw-toggle" class="ghost compact" type="button">Raw JSON</button></div><div id="playground-output" class="assistant-output empty-state">Response sẽ xuất hiện tại đây.</div><div id="playground-meta" class="response-meta"></div></article></div>
+        </section>
+
+        <section id="page-settings" class="page" data-page="settings" hidden>
+          <div class="section-header"><div><h2>Settings</h2><p class="muted">Thông tin public và tình trạng hạ tầng Gateway.</p></div><button id="refresh-settings" class="secondary" type="button">Kiểm tra lại</button></div>
+          <div class="content-grid"><article class="panel"><h3>Gateway</h3><dl id="service-settings" class="definition-list"></dl></article><article class="panel"><h3>Dependencies</h3><div id="dependency-status" class="status-list"></div></article></div>
+          <article class="panel"><div class="panel-header"><h3>Model mappings</h3></div><div id="model-settings" class="table-wrap"></div></article>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <dialog id="project-dialog"><form id="project-form" method="dialog" class="dialog-card"><div class="panel-header"><div><h2>Create project</h2><p class="muted">Tạo nhóm quản lý cho API key.</p></div><button class="icon-button dialog-close" type="button" aria-label="Đóng">×</button></div><div class="form-grid"><label class="wide">Tên<input name="name" required placeholder="VMS Agent"></label></div><div class="form-actions"><button class="secondary dialog-close" type="button">Hủy</button><button type="submit">Tạo project</button></div></form></dialog>
+  <dialog id="key-dialog"><form id="key-form" method="dialog" class="dialog-card"><div class="panel-header"><div><h2>Create API key</h2><p class="muted">Plaintext chỉ hiển thị đúng một lần.</p></div><button class="icon-button dialog-close" type="button" aria-label="Đóng">×</button></div><div class="stack"><label>Project<select name="project_id" required></select></label><label>Tên key<input name="name" required value="application-key"></label><label>Loại<select name="kind"><option value="runtime">Runtime</option><option value="management">Management</option></select></label><label>Hết hạn (không bắt buộc)<input name="expires_at" type="datetime-local"></label><details id="key-optional-settings"><summary>Optional settings</summary><div class="form-grid inset"><label class="wide">Allowed models<input name="allowed_models" placeholder="Để trống dùng default hệ thống"></label><label>TPM<input name="tpm" type="number" min="1"></label><label>RPM<input name="rpm" type="number" min="1" placeholder="Default hệ thống"></label><label>Concurrency<input name="max_concurrency" type="number" min="1"></label><label>Max input characters<input name="max_input_characters" type="number" min="1"></label><label>Max output tokens<input name="max_output_tokens" type="number" min="1"></label><label>Timeout seconds<input name="timeout_seconds" type="number" min="1" step="any"></label><label class="wide">Metadata JSON<textarea name="metadata" rows="5" spellcheck="false">{}</textarea></label><div class="wide"><label>Tags<input id="key-create-tag-input" type="text" placeholder="Nhập tag rồi Enter"></label><div id="key-create-tags" class="tag-editor"></div></div></div></details></div><div class="form-actions"><button class="secondary dialog-close" type="button">Hủy</button><button type="submit">Tạo key</button></div></form></dialog>
+  <dialog id="issued-key-dialog"><div class="dialog-card"><div class="panel-header"><div><h2>API key đã được tạo</h2><p class="muted">Sao chép ngay; bạn sẽ không thể xem lại key này.</p></div></div><pre id="issued-key" class="secret-output"></pre><div class="form-actions"><button id="copy-key-button" type="button">Copy API key</button><button class="secondary dialog-close" type="button">Đóng</button></div></div></dialog>
+  <dialog id="confirm-dialog"><div class="dialog-card small-dialog"><h2 id="confirm-title">Xác nhận thao tác</h2><p id="confirm-message" class="muted"></p><div class="form-actions"><button class="secondary" id="confirm-cancel" type="button">Hủy</button><button class="danger" id="confirm-accept" type="button">Xác nhận</button></div></div></dialog>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="/admin/app.js"></script>
+</body>
+</html>
